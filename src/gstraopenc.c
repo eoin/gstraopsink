@@ -162,7 +162,7 @@ gst_raopenc_transform_size (GstBaseTransform * trans, GstPadDirection direction,
 	if (direction == GST_PAD_SRC)
 		*othersize = size;
 	if (direction == GST_PAD_SINK)
-		*othersize = ((size / 16) * 16) + 16;
+		*othersize = (size + 16);
 	else
 		return FALSE;
 	return TRUE;
@@ -173,8 +173,7 @@ static gboolean
 gst_raopenc_start (GstBaseTransform * basetransform)
 {
 	GstRaopEnc * filter = GST_RAOPENC (basetransform);
-	GstRaopSink * sink = GST_RAOPSINK (gst_element_get_parent (filter));
-	int cipherid, retval;
+	int retval;
 
 	retval = register_cipher(&rijndael_enc_desc);
 	if (retval != CRYPT_OK)
@@ -184,26 +183,16 @@ gst_raopenc_start (GstBaseTransform * basetransform)
 		return FALSE;
 	}
 
-	cipherid = find_cipher("rijndael");
-	if (cipherid == -1)
+	filter->cipherid = find_cipher("rijndael");
+	if (filter->cipherid == -1)
 	{
 		GST_ERROR ("Could not initialise Rijndael cipher: "
 			"find_cipher failed.");
 		return FALSE;
 	}
 
-	retval = cbc_start(cipherid, sink->iv, sink->key, 16, 0, &filter->cbc);
-	if (retval != CRYPT_OK)
-	{
-		GST_ERROR ("Could not initialise Rijndael cipher: "
-			"cbc_start error %d.", retval);
-		return FALSE; 
-	}
-
 	gst_base_transform_set_in_place (basetransform, 0);
 	gst_base_transform_set_passthrough (basetransform, 0);
-
-	GST_INFO("gst_raopenc_start - SUCCESS");
 
 	return TRUE;
 }
@@ -212,13 +201,7 @@ gst_raopenc_start (GstBaseTransform * basetransform)
 static gboolean
 gst_raopenc_stop (GstBaseTransform * basetransform)
 {
-	GstRaopEnc *filter = GST_RAOPENC (basetransform);
-
-	cbc_done (&filter->cbc);
-
 	unregister_cipher(&rijndael_enc_desc);
-
-	GST_INFO("gst_raopenc_stop");
 
 	return TRUE;
 }
@@ -228,9 +211,13 @@ static GstFlowReturn
 gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
 	GstBuffer *outbuf)
 {
+	int retval;
 	GstRaopEnc *filter = GST_RAOPENC(basetransform);
+	GstRaopSink * sink = GST_RAOPSINK (gst_element_get_parent (filter));
 	guchar header[16];
+	int enc_size = (GST_BUFFER_SIZE(inbuf) / 16) * 16;
 
+	// create header
 	memset(header, 0, 16);
 	header[0] = 0x24;
 	header[4] = 0xF0;
@@ -239,14 +226,22 @@ gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
 
 	// header is not encrypted
 	memcpy(GST_BUFFER_DATA(outbuf), header,  16);
-//	memset(GST_BUFFER_DATA (outbuf) + 16, 0xff, GST_BUFFER_SIZE(outbuf) - 16);
-	cbc_encrypt (
-		GST_BUFFER_DATA (inbuf), 
-		GST_BUFFER_DATA (outbuf) + 16,
-		GST_BUFFER_SIZE (outbuf) - 16, &filter->cbc);
 
-	GST_INFO("inbuf size: %d", GST_BUFFER_SIZE(inbuf));
-	GST_INFO("outbuf size: %d", GST_BUFFER_SIZE(outbuf));
+	// this may not be necessary, but JT does it TODO: verify when everything is working
+//	memcpy(GST_BUFFER_DATA(outbuf) + 16, GST_BUFFER_DATA(inbuf), GST_BUFFER_SIZE(inbuf));
+
+	retval = cbc_start(filter->cipherid, sink->iv, sink->key, 16, 0, &filter->cbc);
+	if (retval != CRYPT_OK) {
+		GST_ERROR ("Could not initialise Rijndael cipher: "
+			"cbc_start error %d.", retval);
+		return GST_FLOW_ERROR;
+	}
+
+	// encrypt
+	cbc_encrypt(GST_BUFFER_DATA (inbuf), GST_BUFFER_DATA (outbuf) + 16,
+		enc_size, &filter->cbc);
+
+	cbc_done(&filter->cbc);
 
 	return GST_FLOW_OK;
 }

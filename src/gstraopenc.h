@@ -55,7 +55,8 @@ struct _GstRaopEnc
 
 	GstPad * srcpad;
 	GstPad * sinkpad;
-
+	
+	int cipherid;
 	symmetric_CBC cbc;
 };
 
