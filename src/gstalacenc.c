@@ -300,6 +300,9 @@ gst_alacenc_change_state (GstElement * element, GstStateChange transition)
 			alacenc->buffer = gst_buffer_new_and_alloc (ALAC_BUFFER_SIZE + 3);
 			if (alacenc->buffer == NULL)
 				return GST_STATE_CHANGE_FAILURE;
+			
+			// clear buffer
+			memset(GST_BUFFER_DATA(alacenc->buffer), 0, GST_BUFFER_SIZE(alacenc->buffer));
 
 			alacenc->writer = bitwriter_new (GST_BUFFER_DATA (alacenc->buffer));
 			if (alacenc->writer == NULL)
