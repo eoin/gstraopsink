@@ -163,8 +163,6 @@ gst_alacenc_flush(GstAlacEnc *alacenc)
 {
 	GstFlowReturn flow = GST_FLOW_OK;
 
-	GST_INFO("Flush called");
-	
 	// if the buffer is not empty, flush
 	if (G_LIKELY(alacenc->remaining == ALAC_BUFFER_SIZE)) {
 		GST_INFO("Flush requested with empty buffer");
@@ -189,9 +187,7 @@ gst_alacenc_flush(GstAlacEnc *alacenc)
 
 	bitwriter_reset(alacenc->writer, GST_BUFFER_DATA(alacenc->buffer));
 	gst_alacenc_write_header(alacenc);
-	
 	alacenc->remaining = ALAC_BUFFER_SIZE;
-	GST_INFO("Flush called: Next buffer, size: %d", alacenc->remaining);
 
 	return flow;
 }
@@ -208,7 +204,6 @@ gst_alacenc_event (GstPad *pad, GstEvent *event)
 
 	switch (GST_EVENT_TYPE (event)) {
 		case GST_EVENT_NEWSEGMENT:
-			GST_INFO("alacenc_event - NEWSEGMENT");
 			gst_event_parse_new_segment (event, &update,
 				NULL, NULL, NULL, NULL, NULL);
 
@@ -222,7 +217,6 @@ gst_alacenc_event (GstPad *pad, GstEvent *event)
 			break;
 
 		case GST_EVENT_EOS:
-			GST_INFO("alacenc_event - EOS");
 			if (!GST_FLOW_IS_SUCCESS (gst_alacenc_flush (alacenc))) {
 				res = FALSE;
 				break;
@@ -249,15 +243,8 @@ gst_alacenc_chain (GstPad * pad, GstBuffer * buf)
 	guint8 *data = GST_BUFFER_DATA (buf);
 	gsize offset, remaining, towrite, i, end;
 
-	GST_INFO("alacenc_chain - %d bytes on pad: %s - remaining: %d", GST_BUFFER_SIZE(buf), GST_PAD_NAME(pad), alacenc->remaining);
-
 	if (G_UNLIKELY(alacenc->streaming == FALSE))
 		return GST_FLOW_UNEXPECTED;
-
-	//if (!alacenc->encode) {
-	//	gst_pad_push(alacenc->srcpad, buf);
-	//	return GST_FLOW_OK;
-	//}
 
 	offset = 0;
 	while (offset < GST_BUFFER_SIZE(buf)) 
@@ -295,7 +282,6 @@ gst_alacenc_change_state (GstElement * element, GstStateChange transition)
 
 	switch (transition) {
 		case GST_STATE_CHANGE_NULL_TO_READY:
-			GST_INFO("alacenc_change_state: NULL TO READY");
 			// 3 bytes for the header
 			alacenc->buffer = gst_buffer_new_and_alloc (ALAC_BUFFER_SIZE + 3);
 			if (alacenc->buffer == NULL)
@@ -324,7 +310,6 @@ gst_alacenc_change_state (GstElement * element, GstStateChange transition)
 
 	switch (transition) {
 		case GST_STATE_CHANGE_READY_TO_NULL:
-			GST_INFO("alacenc_change_state: READY TO NULL");
 			bitwriter_destroy (alacenc->writer);
 			gst_buffer_unref (alacenc->buffer);
 			break;

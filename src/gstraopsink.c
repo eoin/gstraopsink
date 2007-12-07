@@ -727,7 +727,6 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 		return FALSE;
 	}
 	
-	GST_INFO("gst_raopsink_setup - SUCCESS");
 	
 	return TRUE;
 }
@@ -771,8 +770,6 @@ gst_raopsink_play(GstRaopSink * sink)
 		return FALSE;
 	}
 	
-	GST_INFO("gst_raopsink_play - SUCCESS");
-
 	return TRUE;
 }
 
