@@ -1,6 +1,7 @@
 /*
  * GStreamer RAOP sink
  * Copyright (C) <2007> Stéphan Kochen <stephan@kochen.nl>
+ * Copyright (C) <2007> Eoin Hennessy <eoin@randomrules.org>
  * 
  * Based on gst-plugin from the gst-template package:
  * Copyright 2005 Thomas Vander Stichele <thomas@apestaart.org>

@@ -1,6 +1,7 @@
 /*
  * GStreamer RAOP sink
  * Copyright (C) <2007> Stéphan Kochen <stephan@kochen.nl>
+ * Copyright (C) <2007> Eoin Hennessy <eoin@randomrules.org>
  * 
  * Based on the GStreamer .wav encoder
  * Copyright (C) <2002> Iain Holmes <iain@prettypeople.org>
