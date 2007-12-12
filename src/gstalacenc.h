@@ -59,7 +59,6 @@ struct _GstAlacEnc {
 	gsize remaining;
 
 	gboolean streaming;
-	guint flushcount;
 };
 
 GType gst_alacenc_get_type (void);

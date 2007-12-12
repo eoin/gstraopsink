@@ -177,16 +177,14 @@ gst_raopenc_start (GstBaseTransform * basetransform)
 	int retval;
 
 	retval = register_cipher(&rijndael_enc_desc);
-	if (retval != CRYPT_OK)
-	{
+	if (retval != CRYPT_OK) {
 		GST_ERROR ("Could not register Rijndael cipher: "
 			"register_cipher error %d.", retval);
 		return FALSE;
 	}
 
 	filter->cipherid = find_cipher("rijndael");
-	if (filter->cipherid == -1)
-	{
+	if (filter->cipherid == -1) {
 		GST_ERROR ("Could not initialise Rijndael cipher: "
 			"find_cipher failed.");
 		return FALSE;
@@ -228,7 +226,7 @@ gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
 	// header is not encrypted
 	memcpy(GST_BUFFER_DATA(outbuf), header,  16);
 
-	// this may not be necessary, but JT does it TODO: verify when everything is working
+	// this may not be necessary
 //	memcpy(GST_BUFFER_DATA(outbuf) + 16, GST_BUFFER_DATA(inbuf), GST_BUFFER_SIZE(inbuf));
 
 	retval = cbc_start(filter->cipherid, sink->iv, sink->key, 16, 0, &filter->cbc);

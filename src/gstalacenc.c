@@ -141,8 +141,6 @@ gst_alacenc_init(GstAlacEnc *alacenc, GstAlacEncClass *klass)
 
 	alacenc->srcpad = gst_pad_new_from_static_template(&src_factory, "src");
 	gst_element_add_pad(GST_ELEMENT (alacenc), alacenc->srcpad);
-
-	alacenc->flushcount = 0;
 }
 
 
@@ -177,15 +175,13 @@ gst_alacenc_flush(GstAlacEnc *alacenc)
 	}
 
 	alacenc->buffer = gst_buffer_new_and_alloc(ALAC_BUFFER_SIZE + 3);
-	if (alacenc->buffer == NULL)
-	{
+	if (alacenc->buffer == NULL) {
 		GST_ERROR ("Could not allocate buffer");
 		return GST_FLOW_ERROR;
 	}
 
-	// clear buffer
+	// clear buffer and write header
 	memset(GST_BUFFER_DATA(alacenc->buffer), 0, GST_BUFFER_SIZE(alacenc->buffer));
-
 	bitwriter_reset(alacenc->writer, GST_BUFFER_DATA(alacenc->buffer));
 	gst_alacenc_write_header(alacenc);
 	alacenc->remaining = ALAC_BUFFER_SIZE;
@@ -248,13 +244,11 @@ gst_alacenc_chain (GstPad * pad, GstBuffer * buf)
 		return GST_FLOW_UNEXPECTED;
 
 	offset = 0;
-	while (offset < GST_BUFFER_SIZE(buf)) 
-	{
+	while (offset < GST_BUFFER_SIZE(buf)) {
 		remaining = GST_BUFFER_SIZE(buf) - offset;
 		towrite = MIN(remaining, alacenc->remaining);
 		end = offset + towrite;
-		for (i=offset; i<end; i+=2)
-		{
+		for (i=offset; i<end; i+=2) {
 			// swap endianness
 			bitwriter_write(alacenc->writer, data[i+1], 8);
 			bitwriter_write(alacenc->writer, data[i], 8);
@@ -262,8 +256,7 @@ gst_alacenc_chain (GstPad * pad, GstBuffer * buf)
 		alacenc->remaining -= towrite;
 		offset = end;
 
-		if (alacenc->remaining == 0)
-		{
+		if (alacenc->remaining == 0) {
 			flow = gst_alacenc_flush(alacenc);
 			if (!GST_FLOW_IS_SUCCESS(flow))
 				break;
@@ -288,7 +281,7 @@ gst_alacenc_change_state (GstElement * element, GstStateChange transition)
 			if (alacenc->buffer == NULL)
 				return GST_STATE_CHANGE_FAILURE;
 			
-			// clear buffer
+			// clear buffer and write header
 			memset(GST_BUFFER_DATA(alacenc->buffer), 0, GST_BUFFER_SIZE(alacenc->buffer));
 
 			alacenc->writer = bitwriter_new (GST_BUFFER_DATA (alacenc->buffer));
