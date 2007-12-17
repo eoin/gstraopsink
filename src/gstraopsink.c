@@ -138,7 +138,7 @@ static gboolean gst_raopsink_open (GstRaopSink * sink);
 static gboolean gst_raopsink_create_random_data (GstRaopSink * sink);
 static gboolean gst_raopsink_announce_stream (GstRaopSink * sink);
 static gboolean gst_raopsink_setup_stream (GstRaopSink * sink);
-//static gboolean gst_raopsink_update_volume (GstRaopSink * sink);
+static gboolean gst_raopsink_update_volume (GstRaopSink * sink);
 static gboolean gst_raopsink_play (GstRaopSink * sink);
 static gboolean gst_raopsink_pause (GstRaopSink * sink);
 static void gst_raopsink_close (GstRaopSink * sink);
@@ -356,8 +356,8 @@ gst_raopsink_open(GstRaopSink* sink)
 		return FALSE;
 	if (gst_raopsink_setup_stream (sink) == FALSE)
 		return FALSE;
-//	if (gst_raopsink_update_volume (sink) == FALSE)
-//		return FALSE;
+	if (gst_raopsink_update_volume (sink) == FALSE)
+		return FALSE;
 
 	return TRUE;
 }
@@ -814,7 +814,7 @@ gst_raopsink_pause (GstRaopSink * sink)
 	return TRUE;
 }
 
-#if 0
+
 static gboolean
 gst_raopsink_update_volume (GstRaopSink * sink)
 {
@@ -861,7 +861,7 @@ gst_raopsink_update_volume (GstRaopSink * sink)
 
 	return TRUE;
 }
-#endif
+
 
 static void
 gst_raopsink_close (GstRaopSink * sink)
