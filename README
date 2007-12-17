@@ -1,2 +1,2 @@
-gstraopsink is a gstreamer plugin providing a sink for the RAOP protocol used to streama audio data to Apples 'Airport' products.
+A gstreamer plugin providing a sink for the 'Realtime Audio Output Protocol' used to stream audio data to Apples 'Airport' products.
 

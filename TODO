@@ -1,2 +1,3 @@
-port crypt systom from tomcrypt to openssl
+port crypt system code tomcrypt to openssl
 add support to update volume
+add support for duration and position queries
