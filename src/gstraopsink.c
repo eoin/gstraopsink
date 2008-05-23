@@ -49,8 +49,8 @@
 #include <arpa/inet.h>
 
 #define REDEF_SHIT
-#include <tommath.h>
 #include <tomcrypt.h>
+#include <tommath.h>
 #include <glib/gprintf.h>
 #include <gst/gst.h>
 

@@ -7,9 +7,11 @@ libgstraopsink_la_SOURCES = gstraop.c gstraopenc.c gstraopsink.c gstalacenc.c bi
 
 # flags used to compile this plugin
 # add other _CFLAGS and _LIBS as needed
-libgstraopsink_la_CFLAGS = $(GST_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CONTROLLER_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) -DLTM_DESC -DLTC_SHA1
+libgstraopsink_la_CFLAGS = $(GST_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CONTROLLER_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) -DLTM_DESC 
 libgstraopsink_la_LIBADD = $(GST_LIBS) $(GST_BASE_LIBS) $(GST_CONTROLLER_LIBS) $(GST_PLUGINS_BASE_LIBS) -ltomcrypt -ltommath
 libgstraopsink_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 
 # headers we need but don't want installed
 noinst_HEADERS = gstraopsink.h rtsp.h rtspconnection.h rtspdefs.h rtspmessage.h rtsptransport.h rtspurl.h
+
+INCLUDES = -I /usr/include/tommath -I /usr/include/tomcrypt
