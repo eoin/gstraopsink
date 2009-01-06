@@ -27,10 +27,6 @@
 #  include <config.h>
 #endif
 
-#include <tomcrypt.h>
-#include <gst/gst.h>
-#include <gst/base/gstbasetransform.h>
-
 #include "gstraopenc.h"
 #include "gstraopsink.h"
 
@@ -173,23 +169,6 @@ gst_raopenc_transform_size (GstBaseTransform * trans, GstPadDirection direction,
 static gboolean
 gst_raopenc_start (GstBaseTransform * basetransform)
 {
-	GstRaopEnc * filter = GST_RAOPENC (basetransform);
-	int retval;
-
-	retval = register_cipher(&rijndael_enc_desc);
-	if (retval != CRYPT_OK) {
-		GST_ERROR ("Could not register Rijndael cipher: "
-			"register_cipher error %d.", retval);
-		return FALSE;
-	}
-
-	filter->cipherid = find_cipher("rijndael");
-	if (filter->cipherid == -1) {
-		GST_ERROR ("Could not initialise Rijndael cipher: "
-			"find_cipher failed.");
-		return FALSE;
-	}
-
 	gst_base_transform_set_in_place (basetransform, 0);
 	gst_base_transform_set_passthrough (basetransform, 0);
 
@@ -200,8 +179,6 @@ gst_raopenc_start (GstBaseTransform * basetransform)
 static gboolean
 gst_raopenc_stop (GstBaseTransform * basetransform)
 {
-	unregister_cipher(&rijndael_enc_desc);
-
 	return TRUE;
 }
 
@@ -210,25 +187,35 @@ static GstFlowReturn
 gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
 	GstBuffer *outbuf)
 {
-	int retval;
 	GstRaopEnc *filter = GST_RAOPENC(basetransform);
 	GstRaopSink * sink = GST_RAOPSINK (gst_element_get_parent (filter));
 	guchar header[16];
-	int enc_size = (GST_BUFFER_SIZE(inbuf) / 16) * 16;
+	int inlen = GST_BUFFER_SIZE (inbuf), outlen; /* (GST_BUFFER_SIZE(inbuf) / 16) * 16; */
+    EVP_CIPHER_CTX aes;
 
-	// create header
+	/* Create header */
 	memset(header, 0, 16);
 	header[0] = 0x24;
 	header[4] = 0xF0;
 	header[5] = 0xFF;
 	(*(guint16 *)(header + 2)) = GUINT16_TO_BE (GST_BUFFER_SIZE (inbuf) + 12);
 
-	// header is not encrypted
+	/* Header is not encrypted */
 	memcpy(GST_BUFFER_DATA(outbuf), header,  16);
 
+    EVP_CIPHER_CTX_init (&aes);
+    EVP_CipherInit_ex (&aes, EVP_aes_128_cbc (), NULL, sink->key, sink->iv, AES_ENCRYPT);
+    EVP_CipherUpdate (&aes, 
+        GST_BUFFER_DATA (outbuf) + 16, /* out */ 
+        &outlen, /* outl */
+        GST_BUFFER_DATA (inbuf), /* in */ 
+        inlen); /* inlen */
+    EVP_CIPHER_CTX_cleanup (&aes);
+    
 	// this may not be necessary
 //	memcpy(GST_BUFFER_DATA(outbuf) + 16, GST_BUFFER_DATA(inbuf), GST_BUFFER_SIZE(inbuf));
 
+    /*
 	retval = cbc_start(filter->cipherid, sink->iv, sink->key, 16, 0, &filter->cbc);
 	if (retval != CRYPT_OK) {
 		GST_ERROR ("Could not initialise Rijndael cipher: "
@@ -241,6 +228,7 @@ gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
 		enc_size, &filter->cbc);
 
 	cbc_done(&filter->cbc);
+    */
 
 	return GST_FLOW_OK;
 }

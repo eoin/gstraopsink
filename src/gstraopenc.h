@@ -26,9 +26,18 @@
 #ifndef __GST_RAOPENC_H__
 #define __GST_RAOPENC_H__
 
-#include <tomcrypt.h>
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
+
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 
 G_BEGIN_DECLS
 
@@ -56,9 +65,6 @@ struct _GstRaopEnc
 
 	GstPad * srcpad;
 	GstPad * sinkpad;
-	
-	int cipherid;
-	symmetric_CBC cbc;
 };
 
 GType gst_raopenc_get_type (void);

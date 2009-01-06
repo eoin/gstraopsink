@@ -26,8 +26,12 @@
 #ifndef __GST_RAOPSINK_H__
 #define __GST_RAOPSINK_H__
 
-#include <tomcrypt.h>
 #include <gst/gst.h>
+
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/aes.h>
+#include <openssl/evp.h>
 
 #include "rtsp.h"
 
@@ -81,11 +85,11 @@ struct _GstRaopSink
     
     gchar instance[17];
     gchar id[32];
-    guchar challenge[64];
+    gchar *challenge;
     gulong challengelen;
-    guchar iv64buf[64];
+    gchar *iv64buf;
     gulong iv64buflen;
-    guchar key64buf[1024];
+    gchar *key64buf;
     gulong key64buflen;
     guchar iv[16];  // 4x4 bytes, 128 bits
     guchar key[16]; // 128 bits

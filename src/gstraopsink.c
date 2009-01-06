@@ -43,14 +43,15 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
-//#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#define REDEF_SHIT
-#include <tomcrypt.h>
-#include <tommath.h>
+/*
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+*/
 #include <glib/gprintf.h>
 #include <gst/gst.h>
 
@@ -58,29 +59,15 @@
 
 #include "rtsp.h"
 
-const guchar itunes_rsakey_mod[256] = {
-	231, 215,  68, 242, 162, 226, 120, 139, 108,  31,  85, 160, 142, 183,   5,  68,
-	168, 250, 121,  69, 170, 139, 230, 198,  44, 229, 245,  28, 189, 212, 220, 104,
-	66, 254,  61,  16, 131, 221,  46, 222, 193, 191, 212,  37,  45, 192,  46, 111,
-	57, 139, 223,  14,  97,  72, 234, 132, 133,  94,  46,  68,  45, 166, 214,  38,
-	100, 246, 116, 161, 243,   4, 146, 154, 222,  79, 104, 147, 239,  45, 246, 231,
-	17, 168, 199, 122,  13, 145, 201, 217, 128, 130,  46,  80, 209,  41,  34, 175,
-	234,  64, 234, 159,  14,  20, 192, 247, 105,  56, 197, 243, 136,  47, 192,  50,
-	61, 217, 254,  85,  21,  95,  81, 187,  89,  33, 194,   1,  98, 159, 215,  51,
-	82, 213, 226, 239, 170, 191, 155, 160,  72, 215, 184,  19, 162, 182, 118, 127,
-	108,  60, 207,  30, 180, 206, 103,  61,   3, 123,  13,  46, 163,  12,  95, 255,
-	235,   6, 248, 208, 138, 221, 228,   9,  87,  26, 156, 104, 159, 239,  16, 114,
-	136,  85, 221, 140, 251, 154, 139, 239,  92, 137,  67, 239,  59,  95, 170,  21,
-	221, 230, 152, 190, 221, 243,  89, 150,   3, 235,  62, 111,  97,  55,  43, 182,
-	40, 246,  85, 159,  89, 154, 120, 191,  80,   6, 135, 170, 127,  73, 118, 192,
-	86,  45,  65,  41,  86, 248, 152, 158,  24, 166,  53,  91, 216,  21, 151, 130,
-	94,  15, 200, 117,  52,  62, 199, 130,  17, 118,  37, 205, 191, 152,  68, 123,
-};
+const static gchar itunes_rsakey_mod[] =
+    "59dE8qLieItsH1WgjrcFRKj6eUWqi+bGLOX1HL3U3GhC/j0Qg90u3sG/1CUtwC"
+    "5vOYvfDmFI6oSFXi5ELabWJmT2dKHzBJKa3k9ok+8t9ucRqMd6DZHJ2YCCLlDR"
+    "KSKv6kDqnw4UwPdpOMXziC/AMj3Z/lUVX1G7WSHCAWKf1zNS1eLvqr+boEjXuB"
+    "OitnZ/bDzPHrTOZz0Dew0uowxf/+sG+NCK3eQJVxqcaJ/vEHKIVd2M+5qL71yJ"
+    "Q+87X6oV3eaYvt3zWZYD6z5vYTcrtij2VZ9Zmni/UAaHqn9JdsBWLUEpVviYnh"
+    "imNVvYFZeCXg/IdTQ+x4IRdiXNv5hEew==";
 
-const guchar itunes_rsakey_exp[3] = {
-	1,   0,   1
-};
-
+const static gchar itunes_rsakey_exp[] = "AQAB";
 
 GST_DEBUG_CATEGORY_STATIC (raopsink_debug);
 #define GST_CAT_DEFAULT raopsink_debug
@@ -362,183 +349,90 @@ gst_raopsink_open(GstRaopSink* sink)
 	return TRUE;
 }
 
-
-static inline int
-base64_encode_nopad(const unsigned char *in,  unsigned long len, 
-	unsigned char *out, unsigned long *outlen)
-{
-	int retval = CRYPT_OK;
-
-	retval = base64_encode (in, len, out, outlen);
-	if (retval != CRYPT_OK)
-		return retval;
-
-	unsigned char * padding = out + (*outlen - 1);
-	if (*padding == '=')
-	{
-		for (padding--; *padding == '='; padding--);
-		*(++padding) = '\0';
-		*outlen = (unsigned long)(padding - out);
-	}
-
-	return CRYPT_OK;
-}
-
-
 static gboolean
 gst_raopsink_create_random_data (GstRaopSink * sink)
 {
 	guchar randbuffer[60];  // 4 + 8 + 16 + 16 + 16
-	gint prngid, hashid, retval;
-	mp_int mod, exp;
-	rsa_key key;
-	guchar enckey[256];
+	guchar enckey[256], *mod, *exp;
+	gsize size;
+    gint retval;
+	RSA *rsa;
 	gulong enckeylen = 256;
 
 	sink->challengelen = 64;
 	sink->iv64buflen = 64;
 	sink->key64buflen = 1024;
 
-	/* Register a math library */
-	ltc_mp = ltm_desc;
-
 	/* Generate random data */
-	retval = rng_get_bytes (randbuffer, 60, NULL);
-	if (retval != 60)
+	retval = RAND_bytes (randbuffer, 60);
+	if (retval != 1)
 	{
-		GST_ERROR ("Could not get enough random data.");
+		GST_ERROR ("Could not generate random data");
 		return FALSE;
 	}
-	memset(randbuffer, 0, 60);
-
+    
 	/* Create the client ID string */
 	g_sprintf (sink->id, "%010u", *(guint32*) randbuffer);
-
+    
 	/* Create the client instance string */
 	g_sprintf (sink->instance, "%08X%08X", *(guint32*)(randbuffer + 4),
 			*(guint32*)(randbuffer + 8));
-
+    
 	/* Create challenge string */
-	retval = base64_encode_nopad (randbuffer + 12, 16,
-			sink->challenge, &sink->challengelen);
-	if (retval != CRYPT_OK)
+    sink->challenge = g_base64_encode (randbuffer + 12, 16);
+    if (sink->challenge == NULL)
 	{
-		GST_ERROR ("Could not encode challenge: "
-				"base64_encode_nopad error %d.", retval);
+		GST_ERROR ("Could not encode challenge.");
 		return FALSE;
 	}
-
+    
 	/* Init Rijndael IV */
 	memcpy (sink->iv, randbuffer + 28, 16);
-	retval = base64_encode_nopad (randbuffer + 28, 16,
-			sink->iv64buf, &sink->iv64buflen);
-	if (retval != CRYPT_OK)
+    sink->iv64buf = g_base64_encode (randbuffer + 28, 16);
+    if (sink->iv64buf == NULL)
 	{
-		GST_ERROR ("Could not encode initial IV: "
-				"base64_encode_nopad error %d.", retval);
+		GST_ERROR ("Could not encode initial IV.");
 		return FALSE;
 	}
 
-	// Register PRNG for RSA encryption
-	retval = register_prng (&sprng_desc);
-	if (retval != CRYPT_OK)
-	{
-		GST_ERROR ("Could not register SPRNG: "
-				"register_prng error %d.", retval);
+    /* Init RSA structure */
+    rsa = RSA_new ();
+    if (rsa == NULL)
+    {
+        GST_ERROR ("Could not create RSA structure.");
 		return FALSE;
-	}
-	prngid = find_prng ("sprng");
-	if (prngid == -1)
-	{
-		GST_ERROR ("Could not initialise SPRNG: "
-				"find_prng failed.");
-		return FALSE;
-	}
+    }
 
-	// Register hash for RSA encryption
-	retval = register_hash (&sha1_desc);
-	if (retval != CRYPT_OK)
-	{
-		GST_ERROR ("Could not register SHA1 hash: "
-				"register_hash error %d.", retval);
-		return FALSE;
-	}
-	hashid = find_hash ("sha1");
-	if (hashid == -1)
-	{
-		GST_ERROR ("Could not initialise SHA1 hash: "
-				"find_hash failed.");
-		return FALSE;
-	}
-
-	// Initialise the key struct
-	retval = ltc_init_multi (&key.e, &key.d, &key.N, &key.dQ, 
-			&key.dP, &key.qP, &key.p, &key.q, NULL);
-	if (retval != CRYPT_OK) {
-		GST_ERROR ("Could not initialise RSA key: "
-				"ltc_init_multi %d.", retval);
-		return retval;
-	}
-	retval = mp_init (&mod);
-	if (retval != 0) 
-	{
-		GST_ERROR ("Could not initialise RSA key: "
-				"mp_init(1) error %d.", retval);
-		return retval;
-	}
-	retval = mp_init (&exp);
-	if (retval != 0) 
-	{
-		GST_ERROR ("Could not initialise RSA key: "
-				"mp_init(2) error %d.", retval);
-		return retval;
-	}
-	retval = mp_read_unsigned_bin (&mod, itunes_rsakey_mod, 256);
-	if (retval != 0)
-	{
-		GST_ERROR ("Could not initialise RSA key: "
-				"mp_read_unsigned_bin(1) %d.", retval);
-		return retval;
-	}
-	retval = mp_read_unsigned_bin (&exp, itunes_rsakey_exp, 3);
-	if (retval != 0)
-	{
-		GST_ERROR ("Could not initialise RSA key: "
-				"mp_read_unsigned_bin(2) %d.", retval);
-		return retval;
-	}
-	key.type = PK_PUBLIC;
-	key.N = &mod;
-	key.e = &exp;
-
+    //mod = g_base64_decode (itunes_rsakey_mod, &size);
+    rsa->n = BN_bin2bn (mod, size, NULL);
+    //exp = g_base64_decode (itunes_rsakey_exp, &size);
+    rsa->e = BN_bin2bn (exp, size, NULL);
+    
 	/* Create Rijndael key */
 	memcpy (sink->key, randbuffer + 44, 16);
-	retval = rsa_encrypt_key (randbuffer + 44, 16,
-			enckey, &enckeylen, NULL, 0, NULL, prngid, hashid, &key);
-	if (retval != CRYPT_OK)
+    enckeylen = RSA_public_encrypt (
+        AES_BLOCK_SIZE, sink->key, enckey, rsa, RSA_PKCS1_OAEP_PADDING);
+	if (enckeylen == -1)
 	{
-		GST_ERROR ("Could not encrypt Rijndael key: "
-				"rsa_encrypt_key error %d.", retval);
+		GST_ERROR ("Could not encrypt Rijndael key.");
 		return FALSE;
 	}
 
-	unregister_hash (&sha1_desc);
-	unregister_prng (&sprng_desc);
-	mp_clear (&mod);
-	mp_clear (&exp);
-
-	retval = base64_encode_nopad (enckey, enckeylen,
-			sink->key64buf, &sink->key64buflen);
-	if (retval != CRYPT_OK)
+    /* Encode encrypted key  */
+    sink->key64buf = g_base64_encode (enckey, enckeylen);
+	if (sink->key64buf == NULL)
 	{
-		GST_ERROR ("Could not encode Rijndael key: "
-				"base64_encode_nopad error %d.", retval);
+		GST_ERROR ("Could not encode Rijndael key.");
 		return FALSE;
 	}
+
+    /* Cleanup */
+    RSA_free (rsa);
+    g_free (mod);
+    g_free (exp);
 
 	return TRUE;
 }
-
 
 static gboolean
 gst_raopsink_announce_stream (GstRaopSink * sink)
@@ -705,26 +599,26 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 	
 	// Link the encsrc to tcpsink
 	if (gst_pad_link(sink->encsrcpad, sink->tcpsinkpad) != GST_PAD_LINK_OK) {
-		GST_ERROR ("failed linking encryption element to tcp element");
+		GST_ERROR ("Failed to link encryption element to tcp element.");
 		return FALSE;
 	}
 
 	// Activate child elements
 	if (gst_element_set_state(GST_ELEMENT (sink->alacfilter), GST_STATE_PLAYING)
 			== GST_STATE_CHANGE_FAILURE) {
-		GST_ERROR ("failed to set ALAC encoder element to PLAYING state");
+		GST_ERROR ("Failed to set ALAC encoder element to PLAYING state.");
 		return FALSE;
 	}
 
 	if (gst_element_set_state(GST_ELEMENT (sink->encfilter), GST_STATE_PLAYING)
 			== GST_STATE_CHANGE_FAILURE) {
-		GST_ERROR ("failed to set encryption element to PLAYING state");
+		GST_ERROR ("Failed to set encryption element to PLAYING state.");
 		return FALSE;
 	}
 	
 	if (gst_element_set_state(GST_ELEMENT (sink->tcpsink), GST_STATE_PLAYING)
 			== GST_STATE_CHANGE_FAILURE) {
-		GST_ERROR ("failed to set tcp element to PLAYING state");
+		GST_ERROR ("Failed to set tcp element to PLAYING state.");
 		return FALSE;
 	}
 	

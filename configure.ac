@@ -28,7 +28,6 @@ dnl check for tools
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
-
 dnl decide on error flags
 AS_COMPILER_FLAG(-Wall, GST_WALL="yes", GST_WALL="no")
                                                                                 
@@ -50,7 +49,6 @@ fi
 
 dnl Now we're ready to ask for gstreamer libs and cflags
 dnl And we can also ask for the right version of gstreamer
-
 
 PKG_CHECK_MODULES(GST, \
   gstreamer-$GST_MAJORMINOR >= $GST_REQUIRED,
@@ -104,16 +102,29 @@ dnl If we need them, we can also use the gstreamer-controller libraries
 PKG_CHECK_MODULES(GSTCTRL,
                   gstreamer-controller-$GST_MAJORMINOR >= $GSTPB_REQUIRED,
                   HAVE_GSTCTRL=yes, HAVE_GSTCTRL=no)
-
+ 
 dnl Give a warning if we don't have gstreamer-controller
 dnl you can turn this into an error if you need them
 if test "x$HAVE_GSTCTRL" = "xno"; then
   AC_MSG_NOTICE(no GStreamer Controller libraries found (gstreamer-controller-$GST_MAJORMINOR))
 fi
-
+ 
 dnl make _CFLAGS and _LIBS available
 AC_SUBST(GSTCTRL_CFLAGS)
 AC_SUBST(GSTCTRL_LIBS)
+
+dnl check for openssl
+PKG_CHECK_MODULES(OPENSSL, [openssl >= 0.9.3], , [CHECK_SSL()])
+
+dnl Give a warning if we don't have gstreamer libs
+dnl you can turn this into an error if you need them
+if test "x$HAVE_OPENSSL" = "xno"; then
+  AC_MSG_ERROR(could not find OpenSSL)
+fi
+
+dnl make _CFLAGS and _LIBS available
+AC_SUBST(OPENSSL_CFLAGS)
+AC_SUBST(OPENSSL_LIBS)
 
 dnl set the plugindir where plugins should be installed
 if test "x${prefix}" = "x$HOME"; then
@@ -128,4 +139,3 @@ GST_PLUGIN_LDFLAGS='-module -avoid-version -export-symbols-regex [_]*\(gst_\|Gst
 AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 AC_OUTPUT(Makefile m4/Makefile src/Makefile)
-
