@@ -135,7 +135,7 @@ fi
 AC_SUBST(plugindir)
 
 dnl set proper LDFLAGS for plugins
-GST_PLUGIN_LDFLAGS='-module -avoid-version -export-symbols-regex [_]*\(gst_\|Gst\|GST_\).*'
+GST_PLUGIN_LDFLAGS='-no-undefined -module -avoid-version -export-symbols-regex [_]*\(gst_\|Gst\|GST_\).*'
 AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 AC_OUTPUT(Makefile m4/Makefile src/Makefile)
