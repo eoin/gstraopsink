@@ -403,9 +403,9 @@ gst_raopsink_create_random_data (GstRaopSink * sink)
 		return FALSE;
     }
 
-    //mod = g_base64_decode (itunes_rsakey_mod, &size);
+    mod = g_base64_decode (itunes_rsakey_mod, &size);
     rsa->n = BN_bin2bn (mod, size, NULL);
-    //exp = g_base64_decode (itunes_rsakey_exp, &size);
+    exp = g_base64_decode (itunes_rsakey_exp, &size);
     rsa->e = BN_bin2bn (exp, size, NULL);
     
 	/* Create Rijndael key */
