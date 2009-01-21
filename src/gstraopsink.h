@@ -27,12 +27,6 @@
 #define __GST_RAOPSINK_H__
 
 #include <gst/gst.h>
-
-#include <openssl/rand.h>
-#include <openssl/rsa.h>
-#include <openssl/aes.h>
-#include <openssl/evp.h>
-
 #include "rtsp.h"
 
 G_BEGIN_DECLS
@@ -52,12 +46,12 @@ typedef struct _GstRaopSink GstRaopSink;
 
 struct _GstRaopSinkClass 
 {
-    GstElementClass parent_class;
+    GstBinClass parent_class;
 };
 
 struct _GstRaopSink
 {
-    GstElement element;
+    GstBin bin;
     
     GstPad * raopsinkpad;
     

@@ -46,18 +46,15 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-/*
+
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/aes.h>
 #include <openssl/evp.h>
-*/
+
 #include <glib/gprintf.h>
-#include <gst/gst.h>
 
 #include "gstraopsink.h"
-
-#include "rtsp.h"
 
 const static gchar itunes_rsakey_mod[] =
     "59dE8qLieItsH1WgjrcFRKj6eUWqi+bGLOX1HL3U3GhC/j0Qg90u3sG/1CUtwC"
@@ -107,9 +104,8 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 		)
 	);
 
-GST_BOILERPLATE (GstRaopSink, gst_raopsink, GstElement,
-	GST_TYPE_ELEMENT);
-
+GST_BOILERPLATE (GstRaopSink, gst_raopsink, GstBin,
+	GST_TYPE_BIN);
 
 /* Prototypes */
 
@@ -175,7 +171,8 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->alacfilter = gst_element_factory_make("alacenc", NULL);
 	g_assert(sink->alacfilter != NULL);
-	gst_object_set_parent(GST_OBJECT(sink->alacfilter), GST_OBJECT(sink));
+	//gst_object_set_parent(GST_OBJECT(sink->alacfilter), GST_OBJECT(sink));
+    gst_bin_add (GST_BIN(sink), sink->alacfilter);
 
 	sink->alacsinkpad = gst_element_get_pad(sink->alacfilter, "sink");
 	g_assert(sink->alacsinkpad != NULL);
@@ -184,7 +181,8 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->encfilter = gst_element_factory_make("raopenc", NULL);
 	g_assert(sink->encfilter != NULL);
-	gst_object_set_parent(GST_OBJECT(sink->encfilter), GST_OBJECT(sink));
+	//gst_object_set_parent(GST_OBJECT(sink->encfilter), GST_OBJECT(sink));
+    gst_bin_add (GST_BIN(sink), sink->encfilter);
 
 	sink->encsinkpad = gst_element_get_pad(sink->encfilter, "sink");
 	g_assert(sink->encsinkpad != NULL);
@@ -574,7 +572,9 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 		return FALSE;
 	}
 	
-	gst_object_set_parent (GST_OBJECT (sink->tcpsink), GST_OBJECT (sink));
+	//gst_object_set_parent (GST_OBJECT (sink->tcpsink), GST_OBJECT (sink));
+    gst_bin_add (GST_BIN(sink), sink->tcpsink);
+
 
 	// Set the host property on the TCP sink
 	g_value_init (&hostprop, G_TYPE_STRING);
