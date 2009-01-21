@@ -171,7 +171,7 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->alacfilter = gst_element_factory_make("alacenc", NULL);
 	g_assert(sink->alacfilter != NULL);
-	//gst_object_set_parent(GST_OBJECT(sink->alacfilter), GST_OBJECT(sink));
+	gst_object_set_parent(GST_OBJECT(sink->alacfilter), GST_OBJECT(sink));
     gst_bin_add (GST_BIN(sink), sink->alacfilter);
 
 	sink->alacsinkpad = gst_element_get_pad(sink->alacfilter, "sink");
@@ -181,7 +181,7 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->encfilter = gst_element_factory_make("raopenc", NULL);
 	g_assert(sink->encfilter != NULL);
-	//gst_object_set_parent(GST_OBJECT(sink->encfilter), GST_OBJECT(sink));
+	gst_object_set_parent(GST_OBJECT(sink->encfilter), GST_OBJECT(sink));
     gst_bin_add (GST_BIN(sink), sink->encfilter);
 
 	sink->encsinkpad = gst_element_get_pad(sink->encfilter, "sink");
@@ -572,7 +572,7 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 		return FALSE;
 	}
 	
-	//gst_object_set_parent (GST_OBJECT (sink->tcpsink), GST_OBJECT (sink));
+	gst_object_set_parent (GST_OBJECT (sink->tcpsink), GST_OBJECT (sink));
     gst_bin_add (GST_BIN(sink), sink->tcpsink);
 
 
@@ -620,7 +620,7 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 			== GST_STATE_CHANGE_FAILURE) {
 		GST_ERROR ("Failed to set tcp element to PLAYING state.");
 		return FALSE;
-	}
+    }
 	
 	
 	return TRUE;
