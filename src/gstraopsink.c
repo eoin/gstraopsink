@@ -116,6 +116,7 @@ static void gst_raopsink_get_property (GObject * object, guint prop_id,
 
 static GstStateChangeReturn gst_raopsink_change_state (GstElement *element,
 	GstStateChange transition);
+static gboolean gst_raopsink_query (GstElement *sink, GstQuery *query);
 
 static gboolean gst_raopsink_open (GstRaopSink * sink);
 static gboolean gst_raopsink_create_random_data (GstRaopSink * sink);
@@ -147,6 +148,8 @@ gst_raopsink_class_init (GstRaopSinkClass * klass)
 	G_OBJECT_CLASS (klass)->set_property = gst_raopsink_set_property;
 	G_OBJECT_CLASS (klass)->get_property = gst_raopsink_get_property;
 	GST_ELEMENT_CLASS (klass)->change_state = gst_raopsink_change_state;
+	GST_ELEMENT_CLASS (klass)->query = gst_raopsink_query;
+
 
 	g_object_class_install_property (G_OBJECT_CLASS (klass), PROP_LOCATION,
 		g_param_spec_string ("location", "RAOP Location",
@@ -154,7 +157,6 @@ gst_raopsink_class_init (GstRaopSinkClass * klass)
 	
 	GST_DEBUG_CATEGORY_INIT (raopsink_debug, "raopsink", 0, "raopsink");
 }
-
 
 /* initialize the new element
  * set functions
@@ -171,7 +173,6 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->alacfilter = gst_element_factory_make("alacenc", NULL);
 	g_assert(sink->alacfilter != NULL);
-	gst_object_set_parent(GST_OBJECT(sink->alacfilter), GST_OBJECT(sink));
     gst_bin_add (GST_BIN(sink), sink->alacfilter);
 
 	sink->alacsinkpad = gst_element_get_pad(sink->alacfilter, "sink");
@@ -181,7 +182,6 @@ gst_raopsink_init (GstRaopSink * sink, GstRaopSinkClass * gclass)
 
 	sink->encfilter = gst_element_factory_make("raopenc", NULL);
 	g_assert(sink->encfilter != NULL);
-	gst_object_set_parent(GST_OBJECT(sink->encfilter), GST_OBJECT(sink));
     gst_bin_add (GST_BIN(sink), sink->encfilter);
 
 	sink->encsinkpad = gst_element_get_pad(sink->encfilter, "sink");
@@ -276,6 +276,27 @@ gst_raopsink_change_state (GstElement * element, GstStateChange transition)
 	return retval;
 }
 
+/* FIXME: for debugging only */
+static gboolean 
+gst_raopsink_query (GstElement *element, GstQuery *query) {
+    gboolean result;
+    GstRaopSink *sink = GST_RAOPSINK (element);
+
+    result = gst_element_query (GST_ELEMENT (sink->tcpsink), query);
+    
+    switch (GST_QUERY_TYPE (query)) {
+    case GST_QUERY_POSITION:
+    case GST_QUERY_DURATION: 
+        {
+            break;
+        }
+
+    default:
+        break;
+    }
+
+    return result;
+}
 
 /* Private methods */
 static gboolean
@@ -572,9 +593,7 @@ gst_raopsink_setup_stream (GstRaopSink * sink)
 		return FALSE;
 	}
 	
-	gst_object_set_parent (GST_OBJECT (sink->tcpsink), GST_OBJECT (sink));
     gst_bin_add (GST_BIN(sink), sink->tcpsink);
-
 
 	// Set the host property on the TCP sink
 	g_value_init (&hostprop, G_TYPE_STRING);

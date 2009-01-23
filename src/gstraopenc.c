@@ -27,6 +27,11 @@
 #  include <config.h>
 #endif
 
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+
 #include "gstraopenc.h"
 #include "gstraopsink.h"
 
@@ -62,7 +67,6 @@ static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
 
 GST_BOILERPLATE (GstRaopEnc, gst_raopenc, GstBaseTransform,
 	GST_TYPE_BASE_TRANSFORM);
-
 
 /* Prototypes */
 static void gst_raopenc_set_property (GObject * object, guint prop_id,
@@ -207,7 +211,7 @@ gst_raopenc_transform (GstBaseTransform *basetransform, GstBuffer *inbuf,
     EVP_CipherInit_ex (&aes, EVP_aes_128_cbc (), NULL, sink->key, sink->iv, AES_ENCRYPT);
     EVP_CipherUpdate (&aes, 
         GST_BUFFER_DATA (outbuf) + 16, /* out */ 
-        &outlen, /* outl */
+        &outlen, /* outl */ 
         GST_BUFFER_DATA (inbuf), /* in */ 
         inlen); /* inlen */
     EVP_CIPHER_CTX_cleanup (&aes);
